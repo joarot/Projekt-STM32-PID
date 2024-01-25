@@ -1,0 +1,10 @@
+../Core/Src/main.c:86:11:PID	3
+../Core/Src/main.c:124:5:main	4
+../Core/Src/main.c:231:6:SystemClock_Config	3
+../Core/Src/main.c:281:13:MX_I2C1_Init	4
+../Core/Src/main.c:329:13:MX_I2C4_Init	4
+../Core/Src/main.c:377:13:MX_TIM3_Init	6
+../Core/Src/main.c:436:13:MX_USART3_UART_Init	2
+../Core/Src/main.c:471:13:MX_USB_OTG_FS_PCD_Init	2
+../Core/Src/main.c:506:13:MX_GPIO_Init	1
+../Core/Src/main.c:596:6:Error_Handler	1
