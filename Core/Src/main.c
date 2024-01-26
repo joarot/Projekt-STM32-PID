@@ -83,6 +83,7 @@ static void MX_I2C1_Init(void);
 static void MX_I2C4_Init(void);
 static void MX_TIM3_Init(void);
 /* USER CODE BEGIN PFP */
+//funkcja PID
 float32_t PID(pre_s* pre, float32_t Kp, float32_t Ki,	float32_t Kd, float32_t dt, float setpoint, float measured){
   	float32_t u=0, P, I, D, error, integral, derivative;
 
@@ -90,17 +91,14 @@ float32_t PID(pre_s* pre, float32_t Kp, float32_t Ki,	float32_t Kd, float32_t dt
 
   	//proportional part
   	P = Kp * error;
-
   	//integral part
   	integral = pre->previous_integral + (error+pre->previous_error) ;
   	pre->previous_integral = integral;
   	I = Ki*integral*(dt/2.0);
-
  	//derivative part
   	derivative = (error -pre->previous_error)/dt;
   	pre->previous_error = error;
   	D = Kd*derivative;
-
   	u = P  + I + D;
   	if (u<0){
   		u=0;
@@ -161,18 +159,18 @@ int main(void)
     lcd_put_cur(1, 0);
     lcd_send_string("JR,MR 2024");
     HAL_Delay(2000);
+
   	// Inicjalizacja struktury przechowującej poprzednie stany
   	pre_s pre={.previous_error=0, .previous_integral=0};
   	pre.previous_error = 0.0f;
   	pre.previous_integral = 0.0f;
-
   	// Parametry regulatora PID
-  	float32_t Kp = 1.0f;
-  	float32_t Ki = 0.1f;
-  	float32_t Kd = 0.01f;
-
+  	float32_t Kp = 48.0f; //człon proporcjonalny
+  	float32_t Ki = 0.80f; //człon całkujący
+  	float32_t Kd = 0.01f; //człon różniczkujący
      // Czas próbkowania
-  	float32_t dt = 0.01f;
+  	float32_t dt = 1;
+
 
   /* USER CODE END 2 */
 
@@ -183,8 +181,9 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  uint8_t wprowadz[1];
 
+	  //sterowanie zadaną temperaturą
+	  uint8_t wprowadz[1];
 	  HAL_StatusTypeDef status =HAL_UART_Receive(&huart3, wprowadz, 1, 1);
 	  if (status== HAL_OK){
 		  if(temperatura_docelowa>=30.0){
@@ -194,15 +193,18 @@ int main(void)
 		  }
 		  temperatura_docelowa=temperatura_docelowa+zmiana;
 	  }
+
+	  // niedziałająca funkcja doboru temperatury zadanej poprzez wpisanie wartości do terminala
 //	  char wprowadz[6];
 //	  HAL_StatusTypeDef status =HAL_UART_Receive(&huart3, (uint8_t *)wprowadz, 1, 1000);
 //	  if (status== HAL_OK){
-//  		  temperatura_docelowa=atof(wprowadz.value);
+//  		  temperatura_docelowa=atof(wprowadz);
 //	  			}
 	  __HAL_UART_CLEAR_FLAG(&huart3, UART_CLEAR_OREF);
 	  BMP280_ReadTemperatureAndPressure(&temperature, &pressure);
 	  sprintf((char*)text, "%.2f, ", temperature);
-	  HAL_UART_Transmit(&huart3, (uint8_t*)text, strlen(text), 1000);
+	  HAL_UART_Transmit(&huart3, (uint8_t*)text, strlen(text), 1000); // wypisanie obecnej temperatury do terminala
+	  HAL_Delay(200);
 
 	  lcd_clear ();
 	  lcd_put_cur(0, 0);
@@ -212,13 +214,8 @@ int main(void)
 	  sprintf((char*)text, "T_zad. %.2f  C", temperatura_docelowa);
 	  lcd_send_string(text);
 	  HAL_Delay(500);
-  	  __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, PID(&pre,Kp,Ki,Kd,dt,temperatura_docelowa,temperature));
-	  	    // Wartość zadana i zmierzona
-//	  	    float32_t setpoint = temperatura_docelowa;
-//	  	    float32_t measured = temperature;
-//	  float32_t control_output = PID(&pre, Kp, Ki, Kd, dt, setpoint, measured);
-//wartosc z PIDA * 100, ustawić PWM w timerze,wyjsciew z timera na baze tranzystora PC8 TIM3
 
+  	  __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, PID(&pre,Kp,Ki,Kd,dt,temperatura_docelowa,temperature)); //nadanie wartości PWM
   }
   /* USER CODE END 3 */
 }
